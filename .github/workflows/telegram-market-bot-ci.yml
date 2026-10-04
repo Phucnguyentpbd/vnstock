@@ -6,11 +6,13 @@ on:
     paths:
       - "telegram_market_bot/**"
       - ".github/workflows/telegram-market-bot-ci.yml"
+      - ".github/workflows/telegram-market-daily.yml"
   pull_request:
     branches: [main]
     paths:
       - "telegram_market_bot/**"
       - ".github/workflows/telegram-market-bot-ci.yml"
+      - ".github/workflows/telegram-market-daily.yml"
   workflow_dispatch:
 
 permissions:
@@ -54,6 +56,7 @@ jobs:
           python -c "from telegram_market_bot.bot import Bot"
           python -c "from telegram_market_bot.market import VnstockMarketCollector"
           python -c "from telegram_market_bot.news import MacroNewsCollector"
+          python -c "from telegram_market_bot.send_once import main"
 
       - name: Run Telegram bot unit tests
         run: pytest -q telegram_market_bot/tests --disable-warnings --maxfail=1
