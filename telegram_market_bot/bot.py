@@ -106,21 +106,43 @@ class Bot:
         self.offset = None
         self.last_sent = None
 
+        if settings.telegram_chat_id:
+            self.store.add(settings.telegram_chat_id)
+
     def report(self) -> str:
         d = self.market.collect()
         news = self.news.fetch(self.s.news_lookback_hours, self.s.max_news_items)
         now = datetime.now(ZoneInfo(self.s.timezone))
-        lines = [f"📊 BẢN TIN THỊ TRƯỜNG — {now:%d/%m/%Y %H:%M}", f"Phiên dữ liệu: {d.session_date or 'N/A'}", "", "1) CHỈ SỐ"]
+        lines = [
+            f"🌅 BẢN TIN THỊ TRƯỜNG SÁNG — {now:%d/%m/%Y %H:%M}",
+            f"Phiên gần nhất: {d.session_date or 'N/A'}",
+            "",
+            "1) DIỄN BIẾN PHIÊN GẦN NHẤT",
+        ]
         for x in d.indices:
             ratio = f" | KL {x.volume_vs_20d:.2f}x TB20" if x.volume_vs_20d else ""
             lines.append(f"• {x.symbol}: {x.close:,.2f} ({x.change:+.2f} | {x.percent_change:+.2f}%){ratio}")
-        lines += ["", "2) ĐỘ RỘNG & DÒNG TIỀN", f"• HOSE: {d.advancers} tăng / {d.decliners} giảm / {d.unchanged} đứng giá", f"• GTGD: {_money(d.total_value)} | KL: {_volume(d.total_volume)}", f"• Khối ngoại (ước): {_volume(d.foreign_net_volume)} | {_money(d.foreign_net_value_est)}"]
-        for title, rows, metric in (("🚀 Tăng mạnh", d.gainers, "pct"), ("📉 Giảm mạnh", d.losers, "pct"), ("💰 Thanh khoản cao", d.liquidity, "value")):
+        lines += [
+            "",
+            "2) ĐỘ RỘNG & DÒNG TIỀN",
+            f"• HOSE: {d.advancers} tăng / {d.decliners} giảm / {d.unchanged} đứng giá",
+            f"• GTGD: {_money(d.total_value)} | KL: {_volume(d.total_volume)}",
+            f"• Khối ngoại (ước): {_volume(d.foreign_net_volume)} | {_money(d.foreign_net_value_est)}",
+        ]
+        for title, rows, metric in (
+            ("🚀 Tăng mạnh", d.gainers, "pct"),
+            ("📉 Giảm mạnh", d.losers, "pct"),
+            ("💰 Thanh khoản cao", d.liquidity, "value"),
+        ):
             lines += ["", title]
             for row in rows:
-                detail = f"{float(row.get('percent_change', 0)):+.2f}%" if metric == "pct" else _money(float(row.get("total_value", 0)))
+                detail = (
+                    f"{float(row.get('percent_change', 0)):+.2f}%"
+                    if metric == "pct"
+                    else _money(float(row.get("total_value", 0)))
+                )
                 lines.append(f"• {row.get('symbol')}: {detail}")
-        lines += ["", "3) VĨ MÔ & TIN ẢNH HƯỞNG"]
+        lines += ["", "3) VĨ MÔ & TIN QUA ĐÊM / 24–30 GIỜ GẦN NHẤT"]
         if not news:
             lines.append("• Chưa lấy được tin mới.")
         for item in news:
@@ -130,7 +152,10 @@ class Bot:
                 lines.append(f"  {item.summary}")
             if item.link:
                 lines.append(f"  {item.source} — {item.link}")
-        lines += ["", "⚠️ Tổng hợp tự động, không phải khuyến nghị mua/bán."]
+        lines += [
+            "",
+            "⚠️ Tổng hợp tự động để theo dõi thị trường, không phải khuyến nghị mua/bán.",
+        ]
         return "\n".join(lines)
 
     def news_report(self) -> str:
@@ -149,7 +174,12 @@ class Bot:
         cmd = text.split()[0].split("@")[0].lower() if text else ""
         if cmd == "/start":
             self.store.add(chat_id)
-            self.telegram.send(chat_id, f"✅ Đã đăng ký. Bot gửi bản tin lúc {self.s.report_hour:02d}:{self.s.report_minute:02d} T2–T6. Dùng /today, /news, /stop.")
+            self.telegram.send(
+                chat_id,
+                f"✅ Đã đăng ký. Bot gửi bản tin lúc "
+                f"{self.s.report_hour:02d}:{self.s.report_minute:02d} mỗi ngày. "
+                "Dùng /today, /news, /stop.",
+            )
         elif cmd in {"/today", "/market"}:
             self.telegram.send(chat_id, self.report())
         elif cmd == "/news":
@@ -162,7 +192,7 @@ class Bot:
 
     def scheduled(self) -> None:
         now = datetime.now(ZoneInfo(self.s.timezone))
-        if now.weekday() >= 5 or (now.hour, now.minute) < (self.s.report_hour, self.s.report_minute):
+        if (now.hour, now.minute) < (self.s.report_hour, self.s.report_minute):
             return
         key = now.date().isoformat()
         if self.last_sent == key:
@@ -172,9 +202,6 @@ class Bot:
             self.last_sent = key
             return
         report = self.report()
-        if self.s.skip_if_market_stale and f"Phiên dữ liệu: {key}" not in report:
-            self.last_sent = key
-            return
         for chat_id in subscribers:
             self.telegram.send(chat_id, report)
         self.last_sent = key
