@@ -36,7 +36,6 @@ jobs:
       - name: Send 07:30 market report
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           BOT_TIMEZONE: Asia/Ho_Chi_Minh
           NEWS_LOOKBACK_HOURS: "30"
           MAX_NEWS_ITEMS: "8"
