@@ -31,12 +31,11 @@ jobs:
       - name: Install project
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install --extra-index-url https://vnstocks.com/api/simple -e .
 
       - name: Send 07:30 market report
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           BOT_TIMEZONE: Asia/Ho_Chi_Minh
           NEWS_LOOKBACK_HOURS: "30"
           MAX_NEWS_ITEMS: "8"
