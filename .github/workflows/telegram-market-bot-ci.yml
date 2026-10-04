@@ -1,0 +1,62 @@
+name: Telegram Market Bot CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "telegram_market_bot/**"
+      - ".github/workflows/telegram-market-bot-ci.yml"
+      - ".github/workflows/telegram-market-daily.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "telegram_market_bot/**"
+      - ".github/workflows/telegram-market-bot-ci.yml"
+      - ".github/workflows/telegram-market-daily.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install project and test tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+          pip install ruff
+
+      - name: Compile bot modules
+        run: python -m compileall -q telegram_market_bot
+
+      - name: Check critical Python errors
+        run: ruff check telegram_market_bot --select E9,F63,F7,F82
+
+      - name: Smoke-test imports
+        run: |
+          python -c "from telegram_market_bot.bot import Bot"
+          python -c "from telegram_market_bot.market import VnstockMarketCollector"
+          python -c "from telegram_market_bot.news import MacroNewsCollector"
+          python -c "from telegram_market_bot.send_once import main"
+
+      - name: Run Telegram bot unit tests
+        run: pytest -q telegram_market_bot/tests --disable-warnings --maxfail=1
