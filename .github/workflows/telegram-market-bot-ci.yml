@@ -58,4 +58,6 @@ jobs:
           python -c "from telegram_market_bot.send_once import main"
 
       - name: Run Telegram bot unit tests
-        run: pytest -q telegram_market_bot/tests --disable-warnings --maxfail=1
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q telegram_market_bot/tests --disable-warnings --maxfail=1
