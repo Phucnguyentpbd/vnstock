@@ -28,6 +28,16 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Check Telegram token availability
+        env:
+          HAS_TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
+        run: |
+          echo "TELEGRAM_BOT_TOKEN available: $HAS_TELEGRAM_TOKEN"
+          if [ "$HAS_TELEGRAM_TOKEN" != "true" ]; then
+            echo "::error::GitHub Actions cannot access TELEGRAM_BOT_TOKEN in this workflow."
+            exit 1
+          fi
+
       - name: Install project
         run: |
           python -m pip install --upgrade pip
