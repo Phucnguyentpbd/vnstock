@@ -2,32 +2,45 @@
 
 Bot Telegram cá nhân dùng **vnstock** để tóm tắt diễn biến thị trường Việt Nam và gom tin vĩ mô có khả năng ảnh hưởng đến thị trường.
 
+## Lịch mặc định
+
+Bot gửi **07:30 sáng mỗi ngày theo Asia/Ho_Chi_Minh**.
+
+Bản tin sáng dùng:
+- phiên giao dịch gần nhất;
+- độ rộng, thanh khoản, top tăng/giảm và khối ngoại của phiên gần nhất;
+- tin vĩ mô trong khoảng 30 giờ gần nhất để bắt các diễn biến qua đêm.
+
 ## Chức năng
 
-- `/today` hoặc `/market`: VN-Index, VN30, HNX, UPCOM, độ rộng HOSE, thanh khoản, top tăng/giảm, top thanh khoản, khối ngoại ước tính.
-- `/news`: tin vĩ mô mới.
-- `/start`: đăng ký chat hiện tại nhận bản tin tự động.
+- `/today` hoặc `/market`: tạo bản tin ngay.
+- `/news`: chỉ lấy tin vĩ mô.
+- `/start`: đăng ký chat nếu bot chạy dạng service 24/7.
 - `/stop`: hủy đăng ký.
-- Tự gửi lúc **16:10 Asia/Ho_Chi_Minh, Thứ 2–Thứ 6**.
-- Nếu không có phiên mới (nghỉ lễ/cuối tuần), mặc định không gửi dữ liệu cũ.
 
-## Nguồn tin mặc định
+## Gửi 07:30 bằng GitHub Actions — không cần VPS
 
-- CafeF: Vĩ mô - Đầu tư, Tài chính - Ngân hàng, Chứng khoán, Tài chính quốc tế.
-- VnExpress Kinh doanh.
-- Google News RSS cho các truy vấn vĩ mô Việt Nam và quốc tế.
+Workflow `.github/workflows/telegram-market-daily.yml` chạy lúc **00:30 UTC = 07:30 Việt Nam** mỗi ngày.
 
-Bot chỉ giữ tiêu đề, mô tả ngắn và link nguồn; không sao chép toàn bài.
+Trong GitHub mở:
 
-## Chạy local
+`Settings → Secrets and variables → Actions → New repository secret`
 
-1. Telegram -> `@BotFather` -> `/newbot` -> lấy token.
-2. Đặt biến môi trường:
+Tạo 2 secret:
+- `TELEGRAM_BOT_TOKEN`: token từ BotFather.
+- `TELEGRAM_CHAT_ID`: chat ID Telegram nhận báo cáo.
+
+Sau khi merge PR vào `main`, workflow chạy tự động mỗi ngày. Có thể vào tab **Actions → Telegram Daily Market Report → Run workflow** để thử gửi ngay.
+
+> Không ghi token trực tiếp vào code, README, workflow hay file .env được commit.
+
+## Chạy dạng bot 24/7
 
 PowerShell:
 
 ```powershell
 $env:TELEGRAM_BOT_TOKEN="TOKEN_CUA_BAN"
+$env:TELEGRAM_CHAT_ID="CHAT_ID_CUA_BAN"
 python -m telegram_market_bot.bot
 ```
 
@@ -35,31 +48,28 @@ Linux/macOS:
 
 ```bash
 export TELEGRAM_BOT_TOKEN="TOKEN_CUA_BAN"
+export TELEGRAM_CHAT_ID="CHAT_ID_CUA_BAN"
 python -m telegram_market_bot.bot
 ```
 
-3. Mở chat với bot và gửi `/start`.
-
 ## Docker
-
-Chạy từ thư mục gốc repo:
 
 ```bash
 docker build -f telegram_market_bot/Dockerfile -t vnstock-market-bot .
 docker run -d --restart unless-stopped \
   --name vnstock-market-bot \
   -e TELEGRAM_BOT_TOKEN="TOKEN_CUA_BAN" \
+  -e TELEGRAM_CHAT_ID="CHAT_ID_CUA_BAN" \
   -v "$(pwd)/bot-data:/app/data" \
   vnstock-market-bot
 ```
 
-## Biến cấu hình
+## Cấu hình mặc định
 
-- `REPORT_HOUR=16`
-- `REPORT_MINUTE=10`
+- `REPORT_HOUR=7`
+- `REPORT_MINUTE=30`
 - `NEWS_LOOKBACK_HOURS=30`
 - `MAX_NEWS_ITEMS=8`
 - `BOT_TIMEZONE=Asia/Ho_Chi_Minh`
-- `SKIP_IF_MARKET_STALE=true`
 
 > Đây là bản tin tổng hợp tự động, không phải khuyến nghị đầu tư. Repo vnstock có giấy phép tùy chỉnh cho mục đích cá nhân/nghiên cứu phi thương mại; nếu triển khai thương mại cần kiểm tra điều khoản/cấp phép của dự án.
